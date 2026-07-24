@@ -13,30 +13,7 @@ workflows:
       - name: Build web assets
         script: npm run build
       - name: Sync Capacitor iOS
-        script: npx cap sync ios
-      - name: Install CocoaPods
-        script: |
-          cd ios/App
-          pod install
-      - name: Archive without signing
-        script: |
-          cd ios/App
-          xcodebuild -workspace App.xcworkspace \
-            -scheme App \
-            -configuration Release \
-            -archivePath $CM_BUILD_DIR/App.xcarchive \
-            CODE_SIGNING_ALLOWED=NO \
-            CODE_SIGNING_REQUIRED=NO \
-            CODE_SIGN_IDENTITY="" \
-            archive
-      - name: Package unsigned IPA
-        script: |
-          mkdir -p $CM_BUILD_DIR/Payload
-          cp -r $CM_BUILD_DIR/App.xcarchive/Products/Applications/*.app $CM_BUILD_DIR/Payload/
-          cd $CM_BUILD_DIR
-          zip -r unsigned.ipa Payload
-    artifacts:
-      - $CM_BUILD_DIR/unsigned.ipaworkflows:
+ workflows:
   ios-unsigned:
     name: LightWatch Unsigned Build
     max_build_duration: 60
@@ -44,7 +21,6 @@ workflows:
     environment:
       node: latest
       xcode: latest
-      cocoapods: default
     scripts:
       - name: Install npm dependencies
         script: npm install
@@ -52,14 +28,10 @@ workflows:
         script: npm run build
       - name: Sync Capacitor iOS
         script: npx cap sync ios
-      - name: Install CocoaPods
-        script: |
-          cd ios/App
-          pod install
       - name: Archive without signing
         script: |
           cd ios/App
-          xcodebuild -workspace App.xcworkspace \
+          xcodebuild -project App.xcodeproj \
             -scheme App \
             -configuration Release \
             -archivePath $CM_BUILD_DIR/App.xcarchive \
