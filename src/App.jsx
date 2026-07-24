@@ -1335,10 +1335,11 @@ export default function LightWatchApp() {
   const selectedLog = logs.find((l) => l.id === selectedLogId);
 
   return (
-    <div style={{ minHeight: "100vh", background: "#05070A", display: "flex", alignItems: "center", justifyContent: "center", padding: "24px 12px" }}>
+    <div style={{ minHeight: "100vh", background: COLOR.base, display: "flex", flexDirection: "column" }}>
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap');
         * { box-sizing: border-box; }
+        html, body, #root { height: 100%; margin: 0; }
         input::placeholder, textarea::placeholder { color: ${COLOR.textTertiary}; }
         .lw-pulse-ring {
           position: absolute; width: 172px; height: 172px; border-radius: 50%;
@@ -1359,18 +1360,7 @@ export default function LightWatchApp() {
         .lw-scrollable::-webkit-scrollbar { width: 0px; }
       `}</style>
 
-      {/* Phone frame */}
-      <div style={{ width: 390, height: 780, background: COLOR.base, borderRadius: 44, border: "10px solid #000", boxShadow: "0 30px 80px rgba(0,0,0,0.6), 0 0 0 1px #1a1a1a", overflow: "hidden", position: "relative", display: "flex", flexDirection: "column" }}>
-        {/* status bar */}
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "14px 26px 6px", flexShrink: 0 }}>
-          <span style={{ fontSize: 13, fontWeight: 600, color: COLOR.textPrimary, fontFamily: "Inter, sans-serif" }}>9:41</span>
-          <div style={{ position: "absolute", top: 8, left: "50%", transform: "translateX(-50%)", width: 90, height: 26, background: "#000", borderRadius: 14 }} />
-          <div style={{ display: "flex", gap: 5, alignItems: "center" }}>
-            <Activity size={12} color={COLOR.textSecondary} />
-            <span style={{ fontSize: 11, color: COLOR.textSecondary, fontFamily: "Inter, sans-serif" }}>5G</span>
-          </div>
-        </div>
-
+      <div style={{ flex: 1, minHeight: "100vh", background: COLOR.base, overflow: "hidden", position: "relative", display: "flex", flexDirection: "column", paddingTop: "env(safe-area-inset-top)", paddingBottom: "env(safe-area-inset-bottom)" }}>
         <div style={{ flex: 1, overflow: "hidden", display: "flex", flexDirection: "column", fontFamily: "Inter, sans-serif" }}>
           {!loaded ? (
             <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", color: COLOR.textSecondary, fontSize: 13 }}>
