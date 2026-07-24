@@ -6,23 +6,32 @@ import {
   Check
 } from "lucide-react";
 import { Capacitor } from "@capacitor/core";
-import { Nfc, NfcUtils } from "@capawesome-team/capacitor-nfc";
+import { CapacitorNfc } from "@capgo/capacitor-nfc";
 
 // ---------------------------------------------------------------------------
-// Native NFC (Core NFC via Capacitor) — replaces the old Web NFC (NDEFReader)
-// implementation, which only ever worked in Chrome on Android. This app now
-// runs as a Capacitor-wrapped native shell, so NFC only works in that native
-// build (not in a plain Safari/Chrome tab) — hence checking
-// Capacitor.isNativePlatform() instead of feature-detecting NDEFReader.
+// Native NFC (via @capgo/capacitor-nfc — a free, public alternative to the
+// paid Capawesome Insiders NFC plugin). This app runs as a Capacitor-wrapped
+// native shell, so NFC only works in that native build (not in a plain
+// Safari/Chrome tab) — hence checking Capacitor.isNativePlatform().
 // ---------------------------------------------------------------------------
+function buildNdefTextRecord(text) {
+  const encoder = new TextEncoder();
+  const langBytes = Array.from(encoder.encode("en"));
+  const textBytes = Array.from(encoder.encode(text));
+  const payload = [langBytes.length & 0x3f, ...langBytes, ...textBytes];
+  return {
+    tnf: 0x01,
+    type: [0x54],
+    id: [],
+    payload,
+  };
+}
+
 function decodeNdefTextRecord(record) {
   try {
-    const raw = record?.data;
+    const raw = record?.payload;
     if (!raw) return "";
     const bytes = Array.isArray(raw) ? raw : Object.values(raw);
-    // First byte of an NDEF "text" record is a status byte whose low 6 bits
-    // give the length of the language code (e.g. "en") that precedes the
-    // actual text — skip past it to get the payload.
     const languageCodeLength = bytes[0] & 0x3f;
     const textBytes = bytes.slice(1 + languageCodeLength);
     return new TextDecoder("utf-8").decode(new Uint8Array(textBytes)).trim();
@@ -636,7 +645,7 @@ function FixtureFormScreen({ mode, initial, lights, fixtureCounter, onCancel, on
   useEffect(() => {
     return () => {
       writeListenerRef.current?.remove?.();
-      Nfc.stopScanSession().catch(() => {});
+      CapacitorNfc.stopScanning().catch(() => {});
     };
   }, []);
 
@@ -650,22 +659,19 @@ function FixtureFormScreen({ mode, initial, lights, fixtureCounter, onCancel, on
     setNfcStatus("writing");
     setNfcError("");
     try {
-      const utils = new NfcUtils();
-      const { record } = utils.createNdefTextRecord({ text: payload });
+      const record = buildNdefTextRecord(payload);
 
       await new Promise(async (resolve, reject) => {
-        // The listener fires as soon as a tag is held near the phone; that's
-        // our cue to write to it, then close out the scan session.
-        writeListenerRef.current = await Nfc.addListener("nfcTagScanned", async () => {
+        writeListenerRef.current = await CapacitorNfc.addListener("nfcEvent", async () => {
           try {
-            await Nfc.write({ message: { records: [record] } });
+            await CapacitorNfc.write({ allowFormat: true, records: [record] });
             resolve();
           } catch (err) {
             reject(err);
           }
         });
         try {
-          await Nfc.startScanSession();
+          await CapacitorNfc.startScanning({ invalidateAfterFirstRead: false });
         } catch (err) {
           reject(err);
         }
@@ -680,7 +686,7 @@ function FixtureFormScreen({ mode, initial, lights, fixtureCounter, onCancel, on
     } finally {
       writeListenerRef.current?.remove?.();
       writeListenerRef.current = null;
-      Nfc.stopScanSession().catch(() => {});
+      CapacitorNfc.stopScanning().catch(() => {});
     }
   }
 
@@ -1150,7 +1156,7 @@ export default function LightWatchApp() {
   useEffect(() => {
     return () => {
       scanAbort.current?.remove?.();
-      Nfc.stopScanSession().catch(() => {});
+      CapacitorNfc.stopScanning().catch(() => {});
     };
   }, []);
 
@@ -1212,16 +1218,16 @@ export default function LightWatchApp() {
       // The listener stays registered for the life of the scan session; it
       // fires once per tag tap. We tear the session down as soon as we get
       // a reading (successful or not), mirroring the old single-shot scan.
-      scanAbort.current = await Nfc.addListener("nfcTagScanned", (event) => {
+      scanAbort.current = await CapacitorNfc.addListener("nfcEvent", (event) => {
         let tagId = "";
         try {
-          const records = event?.nfcTag?.message?.records || [];
+          const records = event?.tag?.ndefMessage || [];
           tagId = decodeNdefTextRecord(records[0]);
         } catch {
           tagId = "";
         }
 
-        Nfc.stopScanSession().catch(() => {});
+        CapacitorNfc.stopScanning().catch(() => {});
         scanAbort.current?.remove?.();
         scanAbort.current = null;
         setScanning(false);
@@ -1241,7 +1247,7 @@ export default function LightWatchApp() {
         }
       });
 
-      await Nfc.startScanSession();
+      await CapacitorNfc.startScanning();
     } catch (err) {
       setScanning(false);
       scanAbort.current?.remove?.();
