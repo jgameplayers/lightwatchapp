@@ -286,6 +286,7 @@ function StatusDotSmall({ status }) {
 function LightsScreen({ lights, onOpenLight, onAddFixture }) {
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState("all");
+  const [sortBy, setSortBy] = useState("id");
 
   const filtered = lights.filter((l) => {
     const matchesFilter = filter === "all" || l.status === filter;
@@ -294,12 +295,36 @@ function LightsScreen({ lights, onOpenLight, onAddFixture }) {
     return matchesFilter && matchesQuery;
   });
 
+  const sorted = [...filtered].sort((a, b) => {
+    switch (sortBy) {
+      case "zone":
+        return a.zone.localeCompare(b.zone);
+      case "type":
+        return a.type.localeCompare(b.type);
+      case "status":
+        return a.status.localeCompare(b.status);
+      case "lastServiced":
+        return (b.lastServiced || "").localeCompare(a.lastServiced || "");
+      case "id":
+      default:
+        return a.id.localeCompare(b.id);
+    }
+  });
+
   const filters = [
     { key: "all", label: "All" },
     { key: "fault", label: "Fault" },
     { key: "warning", label: "Warning" },
     { key: "operational", label: "OK" },
     { key: "offline", label: "Offline" },
+  ];
+
+  const sortOptions = [
+    { key: "id", label: "ID" },
+    { key: "zone", label: "Zone" },
+    { key: "type", label: "Type" },
+    { key: "status", label: "Status" },
+    { key: "lastServiced", label: "Last serviced" },
   ];
 
   return (
@@ -320,33 +345,48 @@ function LightsScreen({ lights, onOpenLight, onAddFixture }) {
           />
           {query && <X size={13} color={COLOR.textTertiary} onClick={() => setQuery("")} style={{ cursor: "pointer" }} />}
         </div>
-        <div style={{ display: "flex", gap: 6, marginTop: 10, overflowX: "auto" }}>
-          {filters.map((f) => (
-            <button
-              key={f.key}
-              onClick={() => setFilter(f.key)}
-              style={{
-                fontSize: 12, fontWeight: 600, padding: "5px 12px", borderRadius: 999, flexShrink: 0,
-                fontFamily: "Inter, sans-serif",
-                background: filter === f.key ? COLOR.amber : COLOR.surface,
-                color: filter === f.key ? "#1A1400" : COLOR.textSecondary,
-                border: `1px solid ${filter === f.key ? COLOR.amber : COLOR.border}`,
-              }}
-            >
-              {f.label}
-            </button>
-          ))}
+        <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 10 }}>
+          <div style={{ display: "flex", gap: 6, overflowX: "auto", flex: 1 }}>
+            {filters.map((f) => (
+              <button
+                key={f.key}
+                onClick={() => setFilter(f.key)}
+                style={{
+                  fontSize: 12, fontWeight: 600, padding: "5px 12px", borderRadius: 999, flexShrink: 0,
+                  fontFamily: "Inter, sans-serif",
+                  background: filter === f.key ? COLOR.amber : COLOR.surface,
+                  color: filter === f.key ? "#1A1400" : COLOR.textSecondary,
+                  border: `1px solid ${filter === f.key ? COLOR.amber : COLOR.border}`,
+                }}
+              >
+                {f.label}
+              </button>
+            ))}
+          </div>
+          <select
+            value={sortBy}
+            onChange={(e) => setSortBy(e.target.value)}
+            style={{
+              fontSize: 12, fontWeight: 600, padding: "5px 10px", borderRadius: 999, flexShrink: 0,
+              fontFamily: "Inter, sans-serif", background: COLOR.surface, color: COLOR.textSecondary,
+              border: `1px solid ${COLOR.border}`, outline: "none",
+            }}
+          >
+            {sortOptions.map((o) => (
+              <option key={o.key} value={o.key}>Sort: {o.label}</option>
+            ))}
+          </select>
         </div>
       </div>
 
       <div style={{ flex: 1, overflowY: "auto", padding: "4px 18px 18px" }}>
-        {filtered.length === 0 && (
+        {sorted.length === 0 && (
           <div style={{ textAlign: "center", padding: "40px 10px", color: COLOR.textTertiary, fontSize: 13, fontFamily: "Inter, sans-serif" }}>
             No fixtures match this search.
           </div>
         )}
         <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-          {filtered.map((l) => (
+          {sorted.map((l) => (
             <button key={l.id} onClick={() => onOpenLight(l.id)} style={{ textAlign: "left", background: COLOR.surface, border: `1px solid ${COLOR.borderFaint}`, borderRadius: 12, padding: "12px 13px" }}>
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 6 }}>
                 <span style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 12.5, color: COLOR.textPrimary, fontWeight: 600 }}>{l.id}</span>
