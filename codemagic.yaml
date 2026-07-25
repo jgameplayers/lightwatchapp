@@ -32,3 +32,25 @@ workflows:
           zip -r unsigned.ipa Payload
     artifacts:
       - $CM_BUILD_DIR/unsigned.ipa
+
+  android-debug:
+    name: LightWatch Android Debug Build
+    max_build_duration: 60
+    instance_type: linux_x2
+    environment:
+      node: latest
+      java: 17
+    scripts:
+      - name: Install npm dependencies
+        script: npm install
+      - name: Build web assets
+        script: npm run build
+      - name: Sync Capacitor Android
+        script: npx cap sync android
+      - name: Build debug APK
+        script: |
+          cd android
+          chmod +x gradlew
+          ./gradlew assembleDebug
+    artifacts:
+      - android/app/build/outputs/apk/debug/app-debug.apk
