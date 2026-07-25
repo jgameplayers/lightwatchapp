@@ -8,6 +8,7 @@ import {
 import { Capacitor } from "@capacitor/core";
 import { App as CapacitorApp } from "@capacitor/app";
 import { CapacitorNfc } from "@capgo/capacitor-nfc";
+import { supabase } from "./supabaseClient";
 
 // ---------------------------------------------------------------------------
 // Native NFC (via @capgo/capacitor-nfc — a free, public alternative to the
@@ -1145,25 +1146,106 @@ function BottomNav({ tab, setTab }) {
 // ---------------------------------------------------------------------------
 // App shell
 // ---------------------------------------------------------------------------
-// Storage is scoped personal (not shared) — data syncs across your own
-// devices/sessions but isn't visible to other people who open this artifact.
-const STORAGE_SCOPE = false;
+function fixtureFromRow(row) {
+  return {
+    id: row.id,
+    nfc: row.nfc || "",
+    zone: row.zone || "",
+    type: row.type || "",
+    make: row.make || "",
+    installed: row.installed || "",
+    lastServiced: row.last_serviced || "",
+    status: row.status || "operational",
+  };
+}
+function fixtureToRow(f) {
+  return {
+    id: f.id,
+    nfc: f.nfc || "",
+    zone: f.zone || "",
+    type: f.type || "",
+    make: f.make || "",
+    installed: f.installed || null,
+    last_serviced: f.lastServiced || null,
+    status: f.status || "operational",
+  };
+}
+function logFromRow(row) {
+  return {
+    id: row.id,
+    lightId: row.light_id,
+    type: row.type || "",
+    severity: row.severity || "",
+    description: row.description || "",
+    by: row.by || "",
+    ts: row.ts,
+    resolved: !!row.resolved,
+  };
+}
+function logToRow(l) {
+  return {
+    id: l.id,
+    light_id: l.lightId,
+    type: l.type || "",
+    severity: l.severity || "",
+    description: l.description || "",
+    by: l.by || "",
+    ts: l.ts || new Date().toISOString(),
+    resolved: !!l.resolved,
+  };
+}
 
 async function loadStore(key, fallback) {
   try {
-    const res = await window.storage.get(key, STORAGE_SCOPE);
-    return res ? JSON.parse(res.value) : fallback;
+    if (key === "lights") {
+      const { data, error } = await supabase.from("fixtures").select("*");
+      if (error) throw error;
+      if (!data || data.length === 0) return fallback;
+      return data.map(fixtureFromRow);
+    }
+    if (key === "logs") {
+      const { data, error } = await supabase.from("logs").select("*").order("ts", { ascending: false });
+      if (error) throw error;
+      if (!data || data.length === 0) return fallback;
+      return data.map(logFromRow);
+    }
+    if (key === "fixture-counter") {
+      const { data, error } = await supabase.from("meta").select("value").eq("key", "fixture-counter").maybeSingle();
+      if (error) throw error;
+      return data ? data.value : fallback;
+    }
+    return fallback;
   } catch (err) {
-    // Key doesn't exist yet — first run.
+    console.error(`Failed to load ${key} from Supabase`, err);
     return fallback;
   }
 }
 
 async function saveStore(key, value) {
   try {
-    await window.storage.set(key, JSON.stringify(value), STORAGE_SCOPE);
+    if (key === "lights") {
+      await supabase.from("fixtures").delete().neq("id", "__none__");
+      if (value.length > 0) {
+        const { error } = await supabase.from("fixtures").insert(value.map(fixtureToRow));
+        if (error) throw error;
+      }
+      return;
+    }
+    if (key === "logs") {
+      await supabase.from("logs").delete().neq("id", "__none__");
+      if (value.length > 0) {
+        const { error } = await supabase.from("logs").insert(value.map(logToRow));
+        if (error) throw error;
+      }
+      return;
+    }
+    if (key === "fixture-counter") {
+      const { error } = await supabase.from("meta").upsert({ key: "fixture-counter", value });
+      if (error) throw error;
+      return;
+    }
   } catch (err) {
-    console.error(`Failed to save ${key}`, err);
+    console.error(`Failed to save ${key} to Supabase`, err);
   }
 }
 
