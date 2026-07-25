@@ -39,7 +39,7 @@ workflows:
     instance_type: mac_mini_m2
     environment:
       node: latest
-      java: 17
+      java: 21
     scripts:
       - name: Install npm dependencies
         script: npm install
