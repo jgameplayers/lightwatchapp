@@ -735,7 +735,6 @@ function FixtureFormScreen({ mode, initial, lights, fixtureCounter, onCancel, on
   const idTaken = mode === "add" && lights.some((l) => l.id.toLowerCase() === form.id.trim().toLowerCase());
   const canSave =
     form.id.trim().length > 0 &&
-    form.zone.trim().length > 0 &&
     form.type.trim().length > 0 &&
     !idTaken;
 
@@ -833,7 +832,7 @@ function FixtureFormScreen({ mode, initial, lights, fixtureCounter, onCancel, on
           </div>
         )}
 
-        <FieldLabel>Zone / location</FieldLabel>
+        <FieldLabel>Zone / location (optional)</FieldLabel>
         <input
           value={form.zone}
           onChange={(e) => set("zone", e.target.value)}
@@ -1150,24 +1149,30 @@ function fixtureFromRow(row) {
   return {
     id: row.id,
     nfc: row.nfc || "",
+    name: row.name || "",
+    kind: row.kind || "fixture",
     zone: row.zone || "",
     type: row.type || "",
     make: row.make || "",
-    installed: row.installed || "",
-    lastServiced: row.last_serviced || "",
     status: row.status || "operational",
+    hasDmx: !!row.has_dmx,
+    dmxAddress: row.dmx_address != null ? String(row.dmx_address) : "",
+    dmxUniverse: row.dmx_universe != null ? String(row.dmx_universe) : "",
   };
 }
 function fixtureToRow(f) {
   return {
     id: f.id,
     nfc: f.nfc || "",
+    name: f.name || "",
+    kind: f.kind || "fixture",
     zone: f.zone || "",
     type: f.type || "",
     make: f.make || "",
-    installed: f.installed || null,
-    last_serviced: f.lastServiced || null,
     status: f.status || "operational",
+    has_dmx: !!f.hasDmx,
+    dmx_address: f.hasDmx && f.dmxAddress !== "" ? parseInt(f.dmxAddress, 10) : null,
+    dmx_universe: f.hasDmx && f.dmxUniverse !== "" ? parseInt(f.dmxUniverse, 10) : null,
   };
 }
 function logFromRow(row) {
