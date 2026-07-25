@@ -36,7 +36,7 @@ workflows:
   android-debug:
     name: LightWatch Android Debug Build
     max_build_duration: 60
-    instance_type: linux
+    instance_type: mac_mini_m2
     environment:
       node: latest
       java: 17
