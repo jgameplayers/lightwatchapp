@@ -6,6 +6,7 @@ import {
   Check
 } from "lucide-react";
 import { Capacitor } from "@capacitor/core";
+import { App as CapacitorApp } from "@capacitor/app";
 import { CapacitorNfc } from "@capgo/capacitor-nfc";
 
 // ---------------------------------------------------------------------------
@@ -1152,6 +1153,45 @@ export default function LightWatchApp() {
   useEffect(() => {
     lightsRef.current = lights;
   }, [lights]);
+
+  useEffect(() => {
+    if (!Capacitor.isNativePlatform()) return;
+
+    function openFromUrl(url) {
+      let tagId = "";
+      try {
+        const parsed = new URL(url);
+        tagId = parsed.searchParams.get("id") || "";
+      } catch {
+        return;
+      }
+      if (!tagId) return;
+
+      const match = lightsRef.current.find(
+        (l) => l.nfc.trim().toUpperCase() === tagId.toUpperCase() || l.id.toUpperCase() === tagId.toUpperCase()
+      );
+      if (match) {
+        setSelectedId(match.id);
+        setScreen("detail");
+        setJustScanned(true);
+        setTimeout(() => setJustScanned(false), 900);
+      } else {
+        setScanError(`Tag reads "${tagId}" — no fixture in the database has that tag.`);
+      }
+    }
+
+    const listenerPromise = CapacitorApp.addListener("appUrlOpen", (data) => {
+      openFromUrl(data.url);
+    });
+
+    CapacitorApp.getLaunchUrl().then((result) => {
+      if (result?.url) openFromUrl(result.url);
+    });
+
+    return () => {
+      listenerPromise.then((listener) => listener.remove());
+    };
+  }, []);
 
   useEffect(() => {
     return () => {
